@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Sign Up | Cited Knowledge Desk{% endblock %}
+
+{% block content %}
+  <section class="panel" style="max-width: 520px;">
+    <p class="eyebrow">Start a workspace</p>
+    <h1>Sign up</h1>
+    <form class="form" method="post" style="margin-top: 22px;">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <div class="form-row">
+        <label for="{{ form.username.id_for_label }}">Username</label>
+        {{ form.username }}
+        {{ form.username.errors }}
+      </div>
+      <div class="form-row">
+        <label for="{{ form.email.id_for_label }}">Email</label>
+        {{ form.email }}
+        {{ form.email.errors }}
+      </div>
+      <div class="form-row">
+        <label for="{{ form.password1.id_for_label }}">Password</label>
+        {{ form.password1 }}
+        {{ form.password1.errors }}
+      </div>
+      <div class="form-row">
+        <label for="{{ form.password2.id_for_label }}">Confirm password</label>
+        {{ form.password2 }}
+        {{ form.password2.errors }}
+      </div>
+      <button class="button" type="submit">Create account</button>
+    </form>
+    <form method="post" action="{% url 'accounts:guest-login' %}" style="margin-top: 12px;">
+      {% csrf_token %}
+      <button class="button button-secondary" type="submit" style="width: 100%;">Continue as guest</button>
+    </form>
+    <p class="muted" style="margin-bottom: 0;">Already have an account? <a href="{% url 'accounts:login' %}">Log in</a></p>
+  </section>
+{% endblock %}

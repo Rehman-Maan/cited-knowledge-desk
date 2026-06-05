@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Document | Cited Knowledge Desk{% endblock %}
+
+{% block content %}
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Upload source</p>
+      <h1>{{ workspace.name }}</h1>
+    </div>
+    <a class="button button-secondary" href="{% url 'documents:list' %}?workspace={{ workspace.slug }}">Document library</a>
+  </div>
+
+  <section class="panel" style="max-width: 680px;">
+    <form class="form" method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <div class="form-row">
+        <label for="{{ form.title.id_for_label }}">Title</label>
+        {{ form.title }}
+        {{ form.title.errors }}
+      </div>
+      <div class="form-row">
+        <label for="{{ form.file.id_for_label }}">File</label>
+        {{ form.file }}
+        {{ form.file.errors }}
+      </div>
+      <button class="button" type="submit">Upload document</button>
+    </form>
+  </section>
+{% endblock %}

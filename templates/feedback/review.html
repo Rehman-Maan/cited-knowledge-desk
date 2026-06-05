@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Feedback Review | Cited Knowledge Desk{% endblock %}
+
+{% block content %}
+  <style>
+    .review-shell {
+      display: grid;
+      gap: 16px;
+    }
+
+    .review-summary {
+      align-items: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: space-between;
+    }
+
+    .review-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .review-item {
+      display: grid;
+      gap: 14px;
+      padding: 18px;
+    }
+
+    .review-meta {
+      align-items: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0;
+    }
+
+    .review-chip {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 999px;
+      color: #475569;
+      display: inline-flex;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 5px 9px;
+    }
+
+    .review-chip-down {
+      background: #fff7ed;
+      border-color: #fed7aa;
+      color: var(--amber);
+    }
+
+    .review-chip-up {
+      background: #ecfdf5;
+      border-color: #bbf7d0;
+      color: var(--green);
+    }
+
+    .review-answer {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      margin: 0;
+      max-height: 12rem;
+      overflow: auto;
+      padding: 14px;
+      white-space: pre-wrap;
+    }
+
+    .review-comment {
+      border-left: 3px solid #99d6cd;
+      margin: 0;
+      padding-left: 12px;
+      white-space: pre-wrap;
+    }
+
+    .review-actions {
+      align-items: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+  </style>
+
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Review queue</p>
+      <h1>Answer feedback</h1>
+      <p class="muted" style="margin: 8px 0 0;">Only feedback from workspaces you administer appears here.</p>
+    </div>
+  </div>
+
+  <section class="panel review-shell">
+    <div class="review-summary">
+      <div>
+        <h2 style="margin: 0;">Submitted answers</h2>
+        <p class="muted" style="margin: 6px 0 0;">Use this queue to revisit weak answers, comments, and citation issues.</p>
+      </div>
+      <span class="review-chip">{{ feedback_items|length }} item{{ feedback_items|length|pluralize }}</span>
+    </div>
+
+    {% if feedback_items %}
+      <div class="review-list">
+        {% for item in feedback_items %}
+          <article class="panel-flat review-item">
+            <p class="review-meta">
+              <span class="review-chip {% if item.rating == 'down' %}review-chip-down{% else %}review-chip-up{% endif %}">
+                {{ item.get_rating_display }}
+              </span>
+              {% if item.failure_tag %}
+                <span class="review-chip">{{ item.get_failure_tag_display }}</span>
+              {% endif %}
+              <span class="review-chip">{{ item.message.session.workspace.name }}</span>
+              <span class="muted">{{ item.created_at|date:"M j, Y, g:i A" }}</span>
+            </p>
+            <div>
+              <p class="eyebrow">Answer</p>
+              <p class="review-answer">{{ item.message.content }}</p>
+            </div>
+            {% if item.comment %}
+              <div>
+                <p class="eyebrow">User comment</p>
+                <p class="review-comment">{{ item.comment }}</p>
+              </div>
+            {% endif %}
+            <p class="muted">Submitted by {{ item.user.get_username }}</p>
+            <div class="review-actions">
+              <a class="button button-secondary" href="{{ item.message.session.get_absolute_url }}">Open chat</a>
+              {% if not item.reviewed %}
+                <form method="post" action="{% url 'feedback:mark-reviewed' item.pk %}">
+                  {% csrf_token %}
+                  <button class="button" type="submit">Mark reviewed</button>
+                </form>
+              {% else %}
+                <span class="status status-ready">Reviewed</span>
+              {% endif %}
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <h2>No feedback yet</h2>
+        <p class="muted" style="margin: 0;">Thumbs-down answers and user notes will appear here for workspace admins.</p>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

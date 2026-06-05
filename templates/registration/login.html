@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Log In | Cited Knowledge Desk{% endblock %}
+
+{% block content %}
+  <section class="panel" style="max-width: 460px;">
+    <p class="eyebrow">Secure access</p>
+    <h1>Log in</h1>
+    <form class="form" method="post" style="margin-top: 22px;">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <div class="form-row">
+        <label for="{{ form.username.id_for_label }}">Username</label>
+        {{ form.username }}
+        {{ form.username.errors }}
+      </div>
+      <div class="form-row">
+        <label for="{{ form.password.id_for_label }}">Password</label>
+        {{ form.password }}
+        {{ form.password.errors }}
+      </div>
+      <button class="button" type="submit">Log in</button>
+    </form>
+    <form method="post" action="{% url 'accounts:guest-login' %}" style="margin-top: 12px;">
+      {% csrf_token %}
+      <button class="button button-secondary" type="submit" style="width: 100%;">Continue as guest</button>
+    </form>
+    <p class="muted" style="margin-bottom: 0;">New here? <a href="{% url 'accounts:signup' %}">Create an account</a></p>
+  </section>
+{% endblock %}

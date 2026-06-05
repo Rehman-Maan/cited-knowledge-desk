@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Cited Knowledge Desk{% endblock %}
+
+{% block content %}
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Workspace command center</p>
+      <h1>{% if selected_workspace %}{{ selected_workspace.name }}{% else %}Dashboard{% endif %}</h1>
+    </div>
+    {% if selected_workspace and membership.can_administer_workspace %}
+      <a class="button" href="{% url 'documents:upload' %}?workspace={{ selected_workspace.slug }}">Upload document</a>
+    {% endif %}
+  </div>
+
+  <div class="grid dashboard-grid">
+    <aside class="panel-flat">
+      <h2>Workspaces</h2>
+      <div class="workspace-list">
+        {% for workspace in workspaces %}
+          <a class="workspace-link {% if workspace == selected_workspace %}active{% endif %}" href="{{ workspace.get_absolute_url }}">
+            {{ workspace.name }}
+          </a>
+        {% empty %}
+          <p class="muted">No workspaces yet.</p>
+        {% endfor %}
+      </div>
+    </aside>
+
+    <section class="panel">
+      {% if selected_workspace %}
+        <p class="muted" style="margin-top: 0;">{{ membership.get_role_display }}</p>
+        <div class="stats">
+          <div class="stat">
+            <span class="stat-value">{{ selected_workspace.document_count }}</span>
+            <span class="muted">Documents</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">{{ selected_workspace.ready_document_count }}</span>
+            <span class="muted">Ready</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">{{ selected_workspace.failed_document_count }}</span>
+            <span class="muted">Failed jobs</span>
+          </div>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <h2>No workspace found</h2>
+          <p class="muted" style="margin: 0;">Your workspace will appear here after your account is created.</p>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}

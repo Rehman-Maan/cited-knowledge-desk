@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Documents | Cited Knowledge Desk{% endblock %}
+
+{% block content %}
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Document library</p>
+      <h1>{% if workspace %}{{ workspace.name }}{% else %}Documents{% endif %}</h1>
+    </div>
+    {% if workspace and can_upload %}
+      <a class="button" href="{% url 'documents:upload' %}?workspace={{ workspace.slug }}">Upload document</a>
+    {% endif %}
+  </div>
+
+  <section class="panel">
+    {% if documents %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Status</th>
+              <th>Type</th>
+              <th>Chunks</th>
+              <th>Uploaded by</th>
+              <th>Uploaded</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for document in documents %}
+              <tr>
+                <td><strong>{{ document.title }}</strong></td>
+                <td><span class="status status-{{ document.status }}">{{ document.get_status_display }}</span></td>
+                <td>{{ document.file_type|upper }}</td>
+                <td>{{ document.chunk_count }}</td>
+                <td>{{ document.uploaded_by.get_username }}</td>
+                <td>{{ document.created_at|date:"M j, Y" }}</td>
+                <td><a href="{{ document.get_absolute_url }}">Open</a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <h2>No documents yet</h2>
+        {% if can_upload %}
+          <a class="button" href="{% url 'documents:upload' %}?workspace={{ workspace.slug }}">Upload document</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

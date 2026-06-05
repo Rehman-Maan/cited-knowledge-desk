@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Evaluations | Cited Knowledge Desk{% endblock %}
+
+{% block content %}
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Regression harness</p>
+      <h1>Evaluations</h1>
+      <p class="muted" style="margin: 8px 0 0;">Run gold questions against retrieval, answer generation, citations, and latency.</p>
+    </div>
+  </div>
+
+  <div class="grid grid-2">
+    <section class="panel">
+      <h2>Run dataset</h2>
+      {% if workspace %}
+        <form class="form" method="post" action="{% url 'evaluations:run' %}">
+          {% csrf_token %}
+          <input type="hidden" name="workspace" value="{{ workspace.slug }}">
+          <div class="form-row">
+            <label for="{{ form.name.id_for_label }}">Name</label>
+            {{ form.name }}
+          </div>
+          <div class="form-row">
+            <label for="{{ form.dataset_path.id_for_label }}">Dataset path</label>
+            {{ form.dataset_path }}
+          </div>
+          <div class="form-row">
+            <label for="{{ form.retrieval_top_k.id_for_label }}">Retrieval top K</label>
+            {{ form.retrieval_top_k }}
+          </div>
+          <button class="button" type="submit">Run evaluation</button>
+        </form>
+      {% else %}
+        <p class="muted">Create or administer a workspace before running evaluations.</p>
+      {% endif %}
+    </section>
+
+    <section class="panel">
+      <h2>Latest runs</h2>
+      {% if runs %}
+        <div class="grid">
+          {% for run in runs %}
+            <a class="panel-flat" href="{{ run.get_absolute_url }}">
+              <p class="eyebrow">{{ run.get_status_display }}</p>
+              <h3 style="margin: 0;">{{ run.name }}</h3>
+              <p class="muted" style="margin-bottom: 0;">
+                Recall {{ run.average_retrieval_recall|floatformat:2 }}
+                - Faithfulness {{ run.average_faithfulness|floatformat:2 }}
+                - p95 {{ run.p95_latency_ms }}ms
+              </p>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <h2>No evaluation runs yet</h2>
+          <p class="muted" style="margin: 0;">Start with the sample dataset, then grow it into real regression coverage.</p>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}

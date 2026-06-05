@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}{{ document.title }} | Cited Knowledge Desk{% endblock %}
+
+{% block content %}
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Source record</p>
+      <h1>{{ document.title }}</h1>
+    </div>
+    <a class="button button-secondary" href="{% url 'documents:list' %}?workspace={{ document.workspace.slug }}">Document library</a>
+  </div>
+
+  <div class="grid detail-grid">
+    <section class="panel">
+      <span class="status status-{{ document.status }}">{{ document.get_status_display }}</span>
+      <dl class="meta-list" style="margin-top: 22px;">
+        <div>
+          <dt>Workspace</dt>
+          <dd>{{ document.workspace.name }}</dd>
+        </div>
+        <div>
+          <dt>File</dt>
+          <dd><a href="{{ document.file.url }}">{{ document.filename }}</a></dd>
+        </div>
+        <div>
+          <dt>Type</dt>
+          <dd>{{ document.file_type|upper }}</dd>
+        </div>
+        <div>
+          <dt>Uploaded by</dt>
+          <dd>{{ document.uploaded_by.get_username }}</dd>
+        </div>
+        <div>
+          <dt>Uploaded</dt>
+          <dd>{{ document.created_at|date:"M j, Y, g:i A" }}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <aside class="panel-flat">
+      <h2>Ingestion</h2>
+      {% if document.error_message %}
+        <p style="color: var(--red);">{{ document.error_message }}</p>
+      {% elif document.status == "ready" %}
+        <p class="muted">{{ document.chunk_count }} chunks are embedded and ready for retrieval.</p>
+      {% elif document.status == "processing" %}
+        <p class="muted">The ingestion worker is extracting and chunking this source.</p>
+      {% else %}
+        <p class="muted">This source is queued for ingestion.</p>
+      {% endif %}
+      {% if can_retry %}
+        <form method="post" action="{% url 'documents:retry' document.pk %}">
+          {% csrf_token %}
+          <button class="button button-danger" type="submit">Retry ingestion</button>
+        </form>
+      {% endif %}
+    </aside>
+  </div>
+
+  {% if chunks %}
+    <section class="panel" style="margin-top: 18px;">
+      <h2>Extracted chunks</h2>
+      <div class="grid" style="margin-top: 16px;">
+        {% for chunk in chunks %}
+          <article class="panel-flat">
+            <p class="muted" style="margin-top: 0;">
+              Chunk {{ chunk.chunk_index|add:1 }}
+              {% if chunk.page_number %} - Page {{ chunk.page_number }}{% endif %}
+              - {{ chunk.token_count }} tokens
+            </p>
+            <p style="margin-bottom: 0;">{{ chunk.content|truncatewords:70 }}</p>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+{% endblock %}

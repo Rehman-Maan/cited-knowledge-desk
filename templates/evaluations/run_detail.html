@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}{{ run.name }} | Evaluations{% endblock %}
+
+{% block content %}
+  <style>
+    .metric-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      margin-bottom: 18px;
+    }
+
+    .metric {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 26px;
+      line-height: 1.1;
+    }
+
+    .result-row {
+      display: grid;
+      gap: 10px;
+      padding: 16px;
+    }
+
+    .result-metrics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+  </style>
+
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">{{ run.dataset_name }} - {{ run.get_status_display }}</p>
+      <h1>{{ run.name }}</h1>
+      <p class="muted" style="margin: 8px 0 0;">{{ run.workspace.name }} - top {{ run.retrieval_top_k }} - {{ run.created_at|date:"M j, Y, g:i A" }}</p>
+    </div>
+    <a class="button button-secondary" href="{% url 'evaluations:list' %}">All evaluations</a>
+  </div>
+
+  <section class="panel">
+    <div class="metric-grid">
+      <div class="metric"><span class="muted">Recall@{{ run.retrieval_top_k }}</span><strong>{{ run.average_retrieval_recall|floatformat:2 }}</strong></div>
+      <div class="metric"><span class="muted">Citation precision</span><strong>{{ run.average_citation_precision|floatformat:2 }}</strong></div>
+      <div class="metric"><span class="muted">Faithfulness</span><strong>{{ run.average_faithfulness|floatformat:2 }}</strong></div>
+      <div class="metric"><span class="muted">Answer relevance</span><strong>{{ run.average_answer_relevance|floatformat:2 }}</strong></div>
+      <div class="metric"><span class="muted">Abstention accuracy</span><strong>{{ run.abstention_accuracy|floatformat:2 }}</strong></div>
+      <div class="metric"><span class="muted">p95 latency</span><strong>{{ run.p95_latency_ms }}ms</strong></div>
+    </div>
+
+    {% if run.error_message %}
+      <p style="color: var(--red);">{{ run.error_message }}</p>
+    {% endif %}
+
+    <div class="grid">
+      {% for result in results %}
+        <article class="panel-flat result-row">
+          <div>
+            <p class="eyebrow">Question</p>
+            <h3 style="margin: 0;">{{ result.question }}</h3>
+          </div>
+          <div class="result-metrics">
+            <span class="status status-ready">Recall {{ result.retrieval_recall|floatformat:2 }}</span>
+            <span class="status status-uploaded">Citation {{ result.citation_precision|floatformat:2 }}</span>
+            <span class="status status-ready">Faithfulness {{ result.faithfulness|floatformat:2 }}</span>
+            <span class="status status-uploaded">Relevance {{ result.answer_relevance|floatformat:2 }}</span>
+            <span class="status status-processing">{{ result.latency_ms }}ms</span>
+          </div>
+          <p style="white-space: pre-wrap; margin: 0;">{{ result.answer }}</p>
+          <p class="muted" style="margin: 0;">Expected sources: {{ result.expected_sources|join:", " }}</p>
+          <p class="muted" style="margin: 0;">Retrieved sources: {{ result.retrieved_sources|join:", " }}</p>
+        </article>
+      {% empty %}
+        <div class="empty-state">
+          <h2>No result rows</h2>
+          <p class="muted" style="margin: 0;">This run did not produce per-question results.</p>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+{% endblock %}

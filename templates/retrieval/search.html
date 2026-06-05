@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% load highlight %}
+
+{% block title %}Retrieval | Cited Knowledge Desk{% endblock %}
+
+{% block content %}
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Vector search</p>
+      <h1>{% if workspace %}{{ workspace.name }}{% else %}Retrieval{% endif %}</h1>
+    </div>
+    <a class="button button-secondary" href="{% url 'documents:list' %}">Document library</a>
+  </div>
+
+  <section class="panel">
+    <form class="form" method="get">
+      {% if workspace %}
+        <input type="hidden" name="workspace" value="{{ workspace.slug }}">
+      {% endif %}
+      <div class="form-row">
+        <label for="{{ form.q.id_for_label }}">Search query</label>
+        {{ form.q }}
+        {{ form.q.errors }}
+      </div>
+      <div class="form-row" style="max-width: 180px;">
+        <label for="{{ form.top_k.id_for_label }}">Top K</label>
+        {{ form.top_k }}
+        {{ form.top_k.errors }}
+      </div>
+      <button class="button" type="submit">Search chunks</button>
+    </form>
+  </section>
+
+  {% if results %}
+    <section class="panel" style="margin-top: 18px;">
+      <h2>Results</h2>
+      <div class="grid" style="margin-top: 16px;">
+        {% for result in results %}
+          <article class="panel-flat">
+            <p class="muted" style="margin-top: 0;">
+              Score {{ result.score|floatformat:3 }}
+              - {{ result.chunk.document.title }}
+              - Chunk {{ result.chunk.chunk_index|add:1 }}
+              {% if result.chunk.page_number %} - Page {{ result.chunk.page_number }}{% endif %}
+            </p>
+            <p style="margin-bottom: 0; white-space: pre-wrap; overflow-wrap: anywhere;">{{ result.excerpt|highlight_query:form.cleaned_data.q }}</p>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  {% elif form.is_bound and form.is_valid %}
+    <section class="empty-state" style="margin-top: 18px;">
+      <h2>No chunks found</h2>
+      <p class="muted" style="margin: 0;">Upload and ingest documents before searching this workspace.</p>
+    </section>
+  {% endif %}
+{% endblock %}

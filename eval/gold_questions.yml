@@ -1,0 +1,31 @@
+- question: "If MANGO is coded as OCPIQ, what is APPLE?"
+  expected_answer: "APPLE is coded as CRRNG."
+  expected_sources:
+    - "bahria_bs_psych_practice_quiz_mcqs_with_explanations.pdf#page=4"
+    - "bahria_bs_psych_practice_quiz_mcqs_roman_urdu_explanations.pdf#page=4"
+  should_abstain: false
+
+- question: "If today is Wednesday, what day will it be after 100 days?"
+  expected_answer: "Friday."
+  expected_sources:
+    - "bahria_bs_psych_practice_quiz_mcqs_with_explanations.pdf#page=4"
+    - "bahria_bs_psych_practice_quiz_mcqs_roman_urdu_explanations.pdf#page=4"
+  should_abstain: false
+
+- question: "In the quiz, what is the answer to QUESTION 17?"
+  expected_answer: "The answer is A) 54."
+  expected_sources:
+    - "bahria_bs_psych_practice_quiz_mcqs_with_explanations.pdf#page=4"
+  should_abstain: false
+
+- question: "How many spokes are mentioned in the wheel question?"
+  expected_answer: "12 spokes."
+  expected_sources:
+    - "bahria_bs_psych_practice_quiz_mcqs_with_explanations.pdf#page=7"
+    - "bahria_bs_psych_practice_quiz_mcqs_roman_urdu_explanations.pdf#page=7"
+  should_abstain: false
+
+- question: "What is Bahria University's official 2035 Mars campus psychology policy?"
+  expected_answer: ""
+  expected_sources: []
+  should_abstain: true

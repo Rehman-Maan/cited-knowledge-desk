@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Chat | Cited Knowledge Desk{% endblock %}
+
+{% block content %}
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Grounded chat</p>
+      <h1>{% if workspace %}{{ workspace.name }}{% else %}Chat{% endif %}</h1>
+    </div>
+    {% if workspace %}
+      <form method="post" action="{% url 'chat:create-session' %}?workspace={{ workspace.slug }}">
+        {% csrf_token %}
+        <button class="button" type="submit">New chat</button>
+      </form>
+    {% endif %}
+  </div>
+
+  <section class="panel">
+    {% if sessions %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Session</th>
+              <th>Updated</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for session in sessions %}
+              <tr>
+                <td><strong>{{ session.title }}</strong></td>
+                <td>{{ session.updated_at|date:"M j, Y, g:i A" }}</td>
+                <td><a href="{{ session.get_absolute_url }}">Open</a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <h2>No chats yet</h2>
+        <p class="muted" style="margin: 0;">Start a chat to ask questions against retrieved document chunks.</p>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

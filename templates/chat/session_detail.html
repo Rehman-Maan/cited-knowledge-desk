@@ -1,0 +1,893 @@
+{% extends "base.html" %}
+{% load highlight %}
+{% load citation_links %}
+
+{% block title %}{{ session.title }} | Cited Knowledge Desk{% endblock %}
+
+{% block content %}
+  <style>
+    .chat-layout {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: 250px minmax(0, 1fr) 300px;
+      min-height: calc(100vh - 150px);
+    }
+
+    .chat-sidebar,
+    .citation-rail {
+      align-self: start;
+      position: sticky;
+      top: 84px;
+    }
+
+    .chat-history {
+      display: grid;
+      gap: 7px;
+      margin-top: 14px;
+    }
+
+    .chat-history a {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      color: var(--ink);
+      display: block;
+      font-size: 13px;
+      line-height: 1.35;
+      padding: 10px 11px;
+    }
+
+    .chat-history a.active {
+      background: var(--accent-soft);
+      border-color: #98d5cc;
+      color: var(--accent-dark);
+      font-weight: 800;
+    }
+
+    .chat-thread {
+      align-self: start;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow-soft);
+      display: grid;
+      overflow: visible;
+    }
+
+    .conversation {
+      display: grid;
+      gap: 12px;
+      padding: 18px;
+    }
+
+    .message {
+      display: grid;
+      gap: 7px;
+      border-radius: 8px;
+      font-weight: 500;
+      padding: 13px 14px;
+    }
+
+    .message .eyebrow {
+      margin: 0;
+    }
+
+    .message-user {
+      background: #f8fafc;
+      border: 1px solid #d9e2ee;
+      justify-self: end;
+      max-width: min(720px, 90%);
+    }
+
+    .message-assistant {
+      background: #ffffff;
+      border: 1px solid #cfd9e6;
+      box-shadow: var(--shadow-soft);
+      justify-self: start;
+      max-width: min(780px, 94%);
+    }
+
+    .message-streaming {
+      border-color: #99d6cd;
+    }
+
+    .message-content {
+      color: var(--ink-strong);
+      font-size: 14px;
+      font-weight: 560;
+      line-height: 1.55;
+      margin: 0;
+      min-height: 0;
+      white-space: pre-line;
+    }
+
+    .inline-citation {
+      background: var(--accent-soft);
+      border: 1px solid #9bd8cf;
+      border-radius: 999px;
+      color: var(--accent-dark);
+      display: inline-flex;
+      font-size: 0.88em;
+      font-weight: 850;
+      line-height: 1.1;
+      padding: 2px 6px;
+    }
+
+    .inline-citation:hover {
+      background: #d9eee9;
+      text-decoration: none;
+    }
+
+    .composer {
+      border-left: 0;
+      border-radius: 0;
+      border-right: 0;
+      border-bottom: 0;
+      box-shadow: none;
+      margin: 0;
+      padding: 16px 18px 18px;
+    }
+
+    .composer textarea {
+      min-height: 92px;
+      resize: vertical;
+    }
+
+    .status-line {
+      color: var(--muted);
+      font-size: 13px;
+      min-height: 20px;
+    }
+
+    .citation-card {
+      background: #ffffff;
+      border: 1px solid #d7e1ee;
+      border-radius: 8px;
+      box-shadow: 0 8px 18px rgba(17, 24, 39, 0.04);
+      max-width: 100%;
+      overflow: hidden;
+      overflow-wrap: anywhere;
+      padding: 0;
+    }
+
+    .citation-card:target {
+      border-color: #99d6cd;
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+    }
+
+    .citation-card p {
+      white-space: pre-wrap;
+    }
+
+    .citation-card-header {
+      background: linear-gradient(180deg, #f8fbfd 0%, #f2f6fa 100%);
+      border-bottom: 1px solid var(--line);
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+    }
+
+    .citation-source {
+      color: var(--ink-strong);
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.25;
+      margin: 0;
+    }
+
+    .citation-facts {
+      align-items: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .citation-fact {
+      align-items: center;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      display: inline-flex;
+      font-size: 11px;
+      font-weight: 750;
+      line-height: 1;
+      min-height: 24px;
+      padding: 0 8px;
+    }
+
+    .citation-fact-score {
+      background: var(--accent-soft);
+      border-color: #a8d8d1;
+      color: var(--accent-dark);
+    }
+
+    .citation-card-body {
+      padding: 12px;
+    }
+
+    .citation-actions {
+      margin-top: 2px;
+    }
+
+    .citation-trigger {
+      align-items: center;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: #334155;
+      cursor: pointer;
+      display: inline-flex;
+      font-size: 13px;
+      font-weight: 800;
+      gap: 6px;
+      list-style: none;
+      min-height: 30px;
+      padding: 4px 10px;
+    }
+
+    .citation-trigger:hover {
+      background: #f8fafc;
+      text-decoration: none;
+    }
+
+    .citation-drawer {
+      display: grid;
+      gap: 9px;
+      margin-top: 9px;
+    }
+
+    .citation-meta {
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .citation-quote {
+      display: -webkit-box;
+      font-size: 12px;
+      line-height: 1.45;
+      margin: 0 0 10px;
+      max-height: 7.3em;
+      overflow: hidden;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 5;
+    }
+
+    .citation-source-link {
+      align-items: center;
+      color: var(--accent-dark);
+      display: inline-flex;
+      font-size: 13px;
+      font-weight: 800;
+      gap: 5px;
+    }
+
+    .citation-source-link:hover {
+      text-decoration: none;
+    }
+
+    .feedback-actions {
+      align-items: center;
+      border-top: 1px solid #eef2f7;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: space-between;
+      margin-top: 4px;
+      padding-top: 8px;
+    }
+
+    .feedback-actions form {
+      margin: 0;
+    }
+
+    .feedback-toolbar {
+      align-items: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .feedback-actions summary {
+      align-items: center;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      color: #334155;
+      cursor: pointer;
+      display: inline-flex;
+      height: 31px;
+      justify-content: center;
+      padding: 0;
+      width: 31px;
+    }
+
+    .feedback-actions summary:hover {
+      background: #f8fafc;
+      text-decoration: none;
+    }
+
+    .feedback-actions summary svg {
+      height: 16px;
+      stroke-width: 2;
+      width: 16px;
+    }
+
+    .feedback-positive summary {
+      border-color: #b7e3d8;
+      color: var(--accent-dark);
+    }
+
+    .feedback-negative summary {
+      border-color: #f4c7c3;
+      color: var(--red);
+    }
+
+    .feedback-actions details[open] summary {
+      background: #f8fafc;
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1);
+    }
+
+    .feedback-actions details {
+      position: relative;
+    }
+
+    .feedback-actions summary {
+      list-style: none;
+    }
+
+    .feedback-actions summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .sr-only {
+      height: 1px;
+      margin: -1px;
+      overflow: hidden;
+      padding: 0;
+      position: absolute;
+      width: 1px;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+    }
+
+    .feedback-report {
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 10px;
+      margin-top: 8px;
+      min-width: min(320px, 80vw);
+      padding: 12px;
+      position: absolute;
+      left: 0;
+      top: 36px;
+      z-index: 40;
+    }
+
+    .feedback-report select,
+    .feedback-report textarea {
+      width: 100%;
+    }
+
+    .feedback-report textarea {
+      min-height: 84px;
+    }
+
+    .feedback-status {
+      align-items: center;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 999px;
+      color: #475569;
+      display: inline-flex;
+      font-size: 11px;
+      font-weight: 750;
+      line-height: 1.4;
+      padding: 4px 8px;
+    }
+
+    .feedback-note {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    mark {
+      background: #fef3c7;
+      border-radius: 4px;
+      color: inherit;
+      padding: 0 2px;
+    }
+
+    .citation-rail .grid {
+      gap: 10px;
+    }
+
+    .citation-rail h2,
+    .chat-sidebar h2 {
+      font-size: 17px;
+    }
+
+    .rail-empty {
+      background: #f8fafc;
+      border: 1px dashed var(--line-strong);
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0;
+      padding: 14px;
+    }
+
+    @media (max-width: 1080px) {
+      .chat-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .chat-sidebar,
+      .citation-rail {
+        position: static;
+      }
+
+      .message-user,
+      .message-assistant {
+        max-width: 100%;
+      }
+    }
+  </style>
+
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Streaming grounded chat</p>
+      <h1>{{ session.title }}</h1>
+    </div>
+    <a class="button button-secondary" href="{% url 'chat:home' %}?workspace={{ session.workspace.slug }}">All chats</a>
+  </div>
+
+  <div class="chat-layout">
+    <aside class="panel-flat chat-sidebar">
+      <h2>Chat history</h2>
+      <div class="chat-history">
+        {% for item in sessions %}
+          <a class="{% if item.pk == session.pk %}active{% endif %}" href="{{ item.get_absolute_url }}">
+            {{ item.title }}
+          </a>
+        {% empty %}
+          <p class="muted">No chats yet.</p>
+        {% endfor %}
+      </div>
+    </aside>
+
+    <main class="chat-thread">
+      <section id="conversation" class="conversation">
+        {% for message in session.messages.all %}
+          <article class="message {% if message.role == 'assistant' %}message-assistant{% else %}message-user{% endif %}">
+            <p class="eyebrow">{{ message.get_role_display }}</p>
+            <p class="message-content">{% if message.role == 'assistant' %}{{ message.content|citation_links:message.citations.all }}{% else %}{{ message.content|strip_text }}{% endif %}</p>
+            {% if message.citations.exists %}
+              <div class="citation-actions">
+                <button class="citation-trigger" type="button" data-citation-template="message-citations-{{ message.pk }}">View citations ({{ message.citations.count }})</button>
+                <template id="message-citations-{{ message.pk }}">
+                  {% for citation in message.citations.all %}
+                    <div id="citation-{{ citation.pk }}" class="citation-card">
+                      <div class="citation-card-header">
+                        <p class="citation-source">{{ citation.document.title }}</p>
+                        <div class="citation-facts">
+                          {% if citation.page_number %}
+                            <span class="citation-fact">Page {{ citation.page_number }}</span>
+                          {% endif %}
+                          {% if citation.score > 0 %}
+                            <span class="citation-fact citation-fact-score">Match {% widthratio citation.score 1 100 %}%</span>
+                          {% else %}
+                            <span class="citation-fact">Saved citation</span>
+                          {% endif %}
+                        </div>
+                      </div>
+                      <div class="citation-card-body">
+                        <p class="citation-quote">{{ citation.quote|highlight_query:message.content }}</p>
+                        <a class="citation-source-link" href="{{ citation.document.get_absolute_url }}">Open source</a>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </template>
+              </div>
+            {% endif %}
+            {% if message.role == 'assistant' and not is_guest_mode %}
+              {% with existing_feedback=message.current_user_feedback.0 %}
+                <div class="feedback-actions" aria-label="Answer feedback">
+                  <div class="feedback-toolbar">
+                    <details class="feedback-positive">
+                      <summary title="Mark helpful" aria-label="Mark helpful">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M7 10v12"></path>
+                          <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"></path>
+                        </svg>
+                        <span class="sr-only">Mark helpful</span>
+                      </summary>
+                      <form class="feedback-report" method="post" action="{% url 'feedback:submit' message.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="rating" value="up">
+                        <label>
+                          Comment optional
+                          <textarea name="comment" placeholder="What worked well?">{{ existing_feedback.comment }}</textarea>
+                        </label>
+                        <button class="button" type="submit">Save helpful feedback</button>
+                      </form>
+                    </details>
+                    <details class="feedback-negative">
+                      <summary title="Send to review" aria-label="Send to review">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M17 14V2"></path>
+                          <path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"></path>
+                        </svg>
+                        <span class="sr-only">Send to review</span>
+                      </summary>
+                      <form class="feedback-report" method="post" action="{% url 'feedback:submit' message.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="rating" value="down">
+                        <label>
+                          Issue type
+                          <select name="failure_tag">
+                            {% for value, label in failure_tags %}
+                              <option value="{{ value }}" {% if existing_feedback.failure_tag == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                          </select>
+                        </label>
+                        <label>
+                          Comment
+                          <textarea name="comment" placeholder="What should be reviewed?">{{ existing_feedback.comment }}</textarea>
+                        </label>
+                        <button class="button" type="submit">Send to review</button>
+                      </form>
+                    </details>
+                  </div>
+                  <span class="{% if existing_feedback %}feedback-status{% else %}feedback-note{% endif %}">
+                    {% if existing_feedback %}
+                      Saved: {{ existing_feedback.get_rating_display }}{% if existing_feedback.failure_tag %} - {{ existing_feedback.get_failure_tag_display }}{% endif %}
+                    {% else %}
+                      Feedback is private to workspace reviewers.
+                    {% endif %}
+                  </span>
+                </div>
+              {% endwith %}
+            {% endif %}
+          </article>
+        {% empty %}
+          <section class="empty-state">
+            <h2>Ask from your sources</h2>
+            <p class="muted" style="margin: 0;">Answers stream into this conversation and save citation cards.</p>
+          </section>
+        {% endfor %}
+      </section>
+
+      <section class="panel composer">
+        <form id="chat-form" class="form" method="post" action="{% url 'chat:ask' session.pk %}">
+          {% csrf_token %}
+          <div class="form-row">
+            <label for="{{ form.question.id_for_label }}">Question</label>
+            {{ form.question }}
+            {{ form.question.errors }}
+          </div>
+          <div class="status-line" id="chat-status"></div>
+          <button id="ask-button" class="button" type="submit">Ask</button>
+        </form>
+      </section>
+    </main>
+
+    <aside class="panel-flat citation-rail">
+      <h2>Citations</h2>
+      <div id="live-citations" class="grid" style="margin-top: 16px;">
+        <p class="rail-empty">Citation cards for the latest streamed answer will appear here.</p>
+      </div>
+    </aside>
+  </div>
+
+  {{ failure_tags|json_script:"failure-tags" }}
+
+  <script>
+    const form = document.getElementById("chat-form");
+    const questionField = document.getElementById("id_question");
+    const conversation = document.getElementById("conversation");
+    const statusLine = document.getElementById("chat-status");
+    const askButton = document.getElementById("ask-button");
+    const liveCitations = document.getElementById("live-citations");
+    const socketScheme = window.location.protocol === "https:" ? "wss" : "ws";
+    const socketUrl = `${socketScheme}://${window.location.host}/ws/chat/{{ session.pk }}/`;
+    const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]").value;
+    const failureTags = JSON.parse(document.getElementById("failure-tags").textContent);
+    let socket;
+    let streamingNode;
+    let streamingTextNode;
+
+    function connectSocket() {
+      socket = new WebSocket(socketUrl);
+
+      socket.onmessage = (event) => {
+        const payload = JSON.parse(event.data);
+        if (payload.type === "status") {
+          statusLine.textContent = payload.message;
+        }
+        if (payload.type === "error") {
+          statusLine.textContent = payload.message;
+          askButton.disabled = false;
+        }
+        if (payload.type === "user_message") {
+          appendMessage("User", payload.content, "message-user");
+        }
+        if (payload.type === "delta") {
+          ensureStreamingMessage();
+          streamingTextNode.textContent += payload.content;
+          window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+        }
+        if (payload.type === "complete") {
+          if (streamingTextNode) {
+            streamingTextNode.textContent = payload.content.trim();
+            if (payload.message_id) {
+              streamingNode.appendChild(buildFeedbackControls(payload.message_id));
+            }
+          }
+          renderCitations(payload.citations);
+          statusLine.textContent = "Answer saved.";
+          askButton.disabled = false;
+          questionField.value = "";
+          streamingNode = null;
+          streamingTextNode = null;
+        }
+      };
+
+      socket.onclose = () => {
+        statusLine.textContent = "Chat connection closed. Refresh to reconnect.";
+        askButton.disabled = false;
+      };
+    }
+
+    function appendMessage(label, content, className) {
+      const article = document.createElement("article");
+      article.className = `message ${className}`;
+      article.innerHTML = `<p class="eyebrow">${label}</p>`;
+      const text = document.createElement("p");
+      text.className = "message-content";
+      text.textContent = content.trim();
+      article.appendChild(text);
+      conversation.appendChild(article);
+    }
+
+    function ensureStreamingMessage() {
+      if (streamingNode) {
+        return;
+      }
+      streamingNode = document.createElement("article");
+      streamingNode.className = "message message-assistant message-streaming";
+      streamingNode.innerHTML = '<p class="eyebrow">Assistant</p>';
+      streamingTextNode = document.createElement("p");
+      streamingTextNode.className = "message-content";
+      streamingNode.appendChild(streamingTextNode);
+      conversation.appendChild(streamingNode);
+    }
+
+    function renderCitations(citations) {
+      liveCitations.innerHTML = "";
+      if (!citations.length) {
+        liveCitations.innerHTML = '<p class="rail-empty">No citations were attached to this answer.</p>';
+        return;
+      }
+      citations.forEach((citation) => {
+        const card = document.createElement("div");
+        card.className = "citation-card";
+        const header = document.createElement("div");
+        header.className = "citation-card-header";
+        const title = document.createElement("p");
+        title.className = "citation-source";
+        title.textContent = citation.document;
+        const facts = document.createElement("div");
+        facts.className = "citation-facts";
+        if (citation.page_number) {
+          const page = document.createElement("span");
+          page.className = "citation-fact";
+          page.textContent = `Page ${citation.page_number}`;
+          facts.appendChild(page);
+        }
+        const scoreValue = Number(citation.score);
+        const score = document.createElement("span");
+        score.className = scoreValue > 0 ? "citation-fact citation-fact-score" : "citation-fact";
+        score.textContent = scoreValue > 0 ? `Match ${Math.round(scoreValue * 100)}%` : "Saved citation";
+        facts.appendChild(score);
+        header.appendChild(title);
+        header.appendChild(facts);
+        const body = document.createElement("div");
+        body.className = "citation-card-body";
+        const quote = document.createElement("p");
+        quote.className = "citation-quote";
+        quote.textContent = citation.quote;
+        const sourceLink = document.createElement("a");
+        sourceLink.className = "citation-source-link";
+        sourceLink.href = citation.source_url;
+        sourceLink.textContent = "Open source";
+        body.appendChild(quote);
+        body.appendChild(sourceLink);
+        card.appendChild(header);
+        card.appendChild(body);
+      liveCitations.appendChild(card);
+      });
+      scrollCitationRailOnMobile();
+    }
+
+    function renderCitationTemplate(templateId, targetId = "") {
+      const template = document.getElementById(templateId);
+      if (!template) {
+        liveCitations.innerHTML = '<p class="rail-empty">No saved citations were found for this answer.</p>';
+        return;
+      }
+      liveCitations.innerHTML = "";
+      liveCitations.appendChild(template.content.cloneNode(true));
+      scrollCitationRailOnMobile();
+      if (targetId) {
+        const target = liveCitations.querySelector(`#${targetId}`);
+        if (target) {
+          target.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          target.animate(
+            [
+              { boxShadow: "0 0 0 3px rgba(15, 118, 110, 0.22)" },
+              { boxShadow: "0 0 0 0 rgba(15, 118, 110, 0)" },
+            ],
+            { duration: 900, easing: "ease-out" },
+          );
+        }
+      }
+    }
+
+    function scrollCitationRailOnMobile() {
+      if (window.matchMedia("(max-width: 1080px)").matches) {
+        liveCitations.closest(".citation-rail").scrollIntoView({
+          block: "start",
+          behavior: "smooth",
+        });
+      }
+    }
+
+    conversation.addEventListener("click", (event) => {
+      const trigger = event.target.closest("[data-citation-template]");
+      if (trigger) {
+        renderCitationTemplate(trigger.dataset.citationTemplate);
+        return;
+      }
+
+      const link = event.target.closest("[data-citation-target]");
+      if (!link) {
+        return;
+      }
+      event.preventDefault();
+      const message = link.closest(".message");
+      const template = message ? message.querySelector("template[id^='message-citations-']") : null;
+      if (template) {
+        renderCitationTemplate(template.id, link.dataset.citationTarget);
+      }
+      window.history.replaceState(null, "", `#${link.dataset.citationTarget}`);
+    });
+
+    document.addEventListener("click", (event) => {
+      document.querySelectorAll(".feedback-actions details[open]").forEach((details) => {
+        if (!details.contains(event.target)) {
+          details.open = false;
+        }
+      });
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") {
+        return;
+      }
+      document.querySelectorAll(".feedback-actions details[open]").forEach((details) => {
+        details.open = false;
+      });
+    });
+
+    function thumbIcon(direction) {
+      if (direction === "up") {
+        return `
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7 10v12"></path>
+            <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"></path>
+          </svg>
+          <span class="sr-only">Mark helpful</span>
+        `;
+      }
+      return `
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 14V2"></path>
+          <path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"></path>
+        </svg>
+        <span class="sr-only">Send to review</span>
+      `;
+    }
+
+    function buildFeedbackControls(messageId) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "feedback-actions";
+
+      const toolbar = document.createElement("div");
+      toolbar.className = "feedback-toolbar";
+
+      const helpfulDetails = document.createElement("details");
+      helpfulDetails.className = "feedback-positive";
+      const helpfulSummary = document.createElement("summary");
+      helpfulSummary.title = "Mark helpful";
+      helpfulSummary.setAttribute("aria-label", "Mark helpful");
+      helpfulSummary.innerHTML = thumbIcon("up");
+      const helpfulForm = document.createElement("form");
+      helpfulForm.className = "feedback-report";
+      helpfulForm.method = "post";
+      helpfulForm.action = `/feedback/messages/${messageId}/`;
+      helpfulForm.innerHTML = `
+        <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+        <input type="hidden" name="rating" value="up">
+        <label>
+          Comment optional
+          <textarea name="comment" placeholder="What worked well?"></textarea>
+        </label>
+        <button class="button" type="submit">Save helpful feedback</button>
+      `;
+      helpfulDetails.appendChild(helpfulSummary);
+      helpfulDetails.appendChild(helpfulForm);
+
+      const details = document.createElement("details");
+      details.className = "feedback-negative";
+      const summary = document.createElement("summary");
+      summary.title = "Send to review";
+      summary.setAttribute("aria-label", "Send to review");
+      summary.innerHTML = thumbIcon("down");
+      const reportForm = document.createElement("form");
+      reportForm.className = "feedback-report";
+      reportForm.method = "post";
+      reportForm.action = `/feedback/messages/${messageId}/`;
+
+      const options = failureTags
+        .map(([value, label]) => `<option value="${value}">${label}</option>`)
+        .join("");
+      reportForm.innerHTML = `
+        <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+        <input type="hidden" name="rating" value="down">
+        <label>
+          Issue type
+          <select name="failure_tag">${options}</select>
+        </label>
+        <label>
+          Comment
+          <textarea name="comment" placeholder="What should be reviewed?"></textarea>
+        </label>
+        <button class="button" type="submit">Send to review</button>
+      `;
+
+      details.appendChild(summary);
+      details.appendChild(reportForm);
+      toolbar.appendChild(helpfulDetails);
+      toolbar.appendChild(details);
+      wrapper.appendChild(toolbar);
+      const note = document.createElement("span");
+      note.className = "feedback-note";
+      note.textContent = "Feedback is private to workspace reviewers.";
+      wrapper.appendChild(note);
+      return wrapper;
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const question = questionField.value.trim();
+      if (!question) {
+        statusLine.textContent = "Enter a question.";
+        return;
+      }
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        statusLine.textContent = "Chat connection is not ready.";
+        connectSocket();
+        return;
+      }
+      askButton.disabled = true;
+      statusLine.textContent = "Sending question...";
+      socket.send(JSON.stringify({ question }));
+    });
+
+    connectSocket();
+  </script>
+{% endblock %}

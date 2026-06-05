@@ -1,0 +1,12 @@
+.env
+.git
+.github
+.pytest_cache
+.ruff_cache
+.venv
+*.pyc
+__pycache__
+cited_knowledge_desk.egg-info
+htmlcov
+media
+staticfiles
