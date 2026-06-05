@@ -1,59 +1,71 @@
 # Cited Knowledge Desk
 
-Cited Knowledge Desk is a Django RAG assistant that answers questions from uploaded documents with source citations, permission-aware retrieval, and an evaluation harness for groundedness.
+[![CI](https://github.com/Rehman-Maan/cited-knowledge-desk/actions/workflows/ci.yml/badge.svg)](https://github.com/Rehman-Maan/cited-knowledge-desk/actions/workflows/ci.yml)
 
-## Problem
+Cited Knowledge Desk is a Django-based RAG workspace for asking questions over uploaded documents with grounded answers, source citations, feedback review, and evaluation metrics.
 
-Internal teams often need quick answers from scattered documents, but unsupported chatbot answers are risky. This project is designed around trust: retrieve the right workspace-scoped sources, answer only from those sources, and show citations.
+It is built for the trust problem behind document chat: answers are only useful when users can see where they came from, reviewers can flag weak responses, and teams can measure whether retrieval and citations are improving.
 
-## Key Features
+## Preview
 
-- Django backend with split local and production settings
-- PostgreSQL database foundation, ready for pgvector in the retrieval milestone
-- Redis-backed Celery worker setup
-- Redis-backed Channels layer for future streaming chat
-- Docker Compose for local app, database, Redis, and worker services
-- Health check endpoint at `/health/`
-- Django auth login/logout flow
-- Signup flow with automatic default workspace creation
-- Guest demo mode from login/signup with limited access to Dashboard, Documents, and Chat
-- Workspace and membership models with owner, admin, and member roles
-- Login-protected dashboard at `/`
-- Document library, upload, detail, and retry views
-- Upload validation for PDF, Markdown, text, and DOCX source files
-- Celery ingestion task for extracting text and creating document chunks
-- pgvector-backed embeddings on document chunks
-- Workspace-scoped vector retrieval diagnostic page
-- Chat sessions, grounded answer generation, and citation persistence
-- Channels WebSocket chat route with streamed answer display
-- Chat history sidebar, loading states, and live citation cards
-- Answer feedback with helpful/report controls, failure tags, and comments
+### Workspace Dashboard
+
+![Workspace dashboard](docs/assets/dashboard.png)
+
+### Cited Chat
+
+![Chat with citations](docs/assets/chat-citations.png)
+
+### Mobile Chat
+
+![Mobile chat](docs/assets/mobile-chat.png)
+
+### Evaluation Harness
+
+![Evaluation dashboard](docs/assets/evaluation-dashboard.png)
+
+## Highlights
+
+- Workspace-scoped document library with PDF, Markdown, text, and DOCX upload validation
+- Celery ingestion worker for text extraction and chunk creation
+- pgvector-backed chunk embeddings with local deterministic embeddings for development
+- OpenAI-compatible embedding and answer-generation providers
+- Streaming Channels/WebSocket chat UI
+- Persistent citations tied to source documents, chunks, pages, and match scores
+- Citation excerpts that focus on the relevant source text instead of dumping whole chunks
+- Answer feedback with thumbs-up/thumbs-down controls, optional comments, and review tags
 - Workspace-admin feedback review queue
-- Gold-question evaluation harness with retrieval, citation, answer, abstention, and latency metrics
-- CI workflow for lint, tests, Docker build, and Trivy scan
-- Production Docker Compose example and deployment notes
-- Milestone logs in `docs/milestone-logs/`
+- Gold-question evaluation harness for recall, citation precision, faithfulness, relevance, abstention, and latency
+- Guest demo mode with limited access to Dashboard, Documents, and Chat
+- Production Docker Compose example with Django, Daphne, Celery, PostgreSQL/pgvector, and Redis
+- GitHub Actions CI for linting, tests, migration checks, Docker build, and Trivy scanning
+
+## Tech Stack
+
+- Python 3.13
+- Django 6
+- Django Channels
+- Django REST Framework
+- Celery
+- Redis
+- PostgreSQL with pgvector
+- Docker Compose
+- OpenAI-compatible LLM and embedding integrations
+- Playwright and pytest for testing
 
 ## Architecture
 
 ```text
 Browser
-  -> Django + DRF
-  -> PostgreSQL
+  -> Django / Channels / Daphne
+  -> PostgreSQL + pgvector
   -> Redis
   -> Celery workers
-  -> future LLM and embedding services
+  -> Embedding provider
+  -> LLM provider
 ```
 
-## Tech Stack
-
-- Django
-- Django REST Framework
-- Django Channels
-- Celery
-- Redis
-- PostgreSQL
-- Docker Compose
+The app keeps retrieval scoped to the active workspace, stores generated answers and citations, and records feedback/evaluation data for later review.
 
 ## Local Setup
 
@@ -72,66 +84,59 @@ python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 ```
 
-Run checks and tests:
+Start PostgreSQL and Redis:
 
 ```powershell
-python -m ruff check .
-python manage.py check
-pytest
+docker compose up -d db redis
 ```
 
-Start the full local stack:
+Run migrations:
 
 ```powershell
-docker compose up --build
+python manage.py migrate
 ```
 
-Docker Compose publishes PostgreSQL on host port `5433` to avoid conflicts with any local PostgreSQL using `5432`. Inside Docker, the app still connects to `db:5432`.
-
-In another terminal, run migrations:
-
-```powershell
-docker compose exec web python manage.py migrate
-```
-
-For local WebSocket chat with Django's dev server, `daphne` is installed and `runserver` serves the ASGI app:
+Run the Django app:
 
 ```powershell
 python manage.py runserver
 ```
 
+Run Celery in another terminal:
+
+```powershell
+celery -A config worker --loglevel=info --pool=solo
+```
+
 Open:
 
 - App: <http://localhost:8000/>
-- Health check: <http://localhost:8000/health/>
-- Admin: <http://localhost:8000/admin/>
-- Retrieval search: <http://localhost:8000/retrieval/search/>
-- Chat: <http://localhost:8000/chat/>
-- Feedback review: <http://localhost:8000/feedback/>
-- Evaluations: <http://localhost:8000/evaluations/>
-
-Create an admin user:
-
-```powershell
-python manage.py createsuperuser
-```
-
-Or create a user through signup:
-
 - Signup: <http://localhost:8000/accounts/signup/>
 - Login: <http://localhost:8000/accounts/login/>
+- Health check: <http://localhost:8000/health/>
+- Documents: <http://localhost:8000/documents/>
+- Chat: <http://localhost:8000/chat/>
+- Evaluations: <http://localhost:8000/evaluations/>
 
-## How RAG Works
+You can also start the full stack with Docker:
 
-The project now supports document upload, background ingestion, text extraction, chunk creation, embedding storage, workspace-scoped vector retrieval, grounded chat answers, citation persistence, answer feedback review, and regression evaluation.
+```powershell
+docker compose up --build
+```
 
-For local development, embeddings default to a deterministic hash provider so the app works without secrets. For hosted embeddings, set:
+## OpenAI Configuration
+
+Local development can run with deterministic local providers. To use OpenAI-backed embeddings and answers, set these values in `.env`:
 
 ```powershell
 EMBEDDING_PROVIDER=openai
-OPENAI_API_KEY=your-api-key
 EMBEDDING_MODEL=text-embedding-3-small
 EMBEDDING_DIMENSIONS=1536
+OPENAI_API_KEY=your-api-key
+
+LLM_PROVIDER=openai
+LLM_MODEL=gpt-5-mini
+LLM_MAX_OUTPUT_TOKENS=700
 ```
 
 Backfill vectors for existing chunks:
@@ -140,21 +145,13 @@ Backfill vectors for existing chunks:
 python manage.py embed_missing_chunks
 ```
 
-For OpenAI answer generation, set:
+## Evaluation
 
-```powershell
-LLM_PROVIDER=openai
-LLM_MODEL=gpt-5-mini
-LLM_MAX_OUTPUT_TOKENS=700
-```
-
-## Evaluation Results
-
-The evaluation harness reads YAML gold questions from `eval/gold_questions.yml`, runs retrieval and answer generation, then stores aggregate and per-question metrics.
+The evaluation harness reads gold questions from `eval/gold_questions.yml`, runs retrieval and answer generation, then stores aggregate and per-question metrics.
 
 Run from the UI:
 
-- Evaluations: <http://localhost:8000/evaluations/>
+- <http://localhost:8000/evaluations/>
 
 Run from the terminal:
 
@@ -164,41 +161,72 @@ python manage.py run_rag_eval --workspace your-workspace-slug --user your-userna
 
 Tracked metrics:
 
-- retrieval recall@k
-- citation precision
-- answer faithfulness
-- answer relevance
-- abstention accuracy
-- average, p50, and p95 latency
+- Retrieval recall@k
+- Citation precision
+- Faithfulness
+- Answer relevance
+- Abstention accuracy
+- Average, p50, and p95 latency
 
-## Security Model
+## Testing
 
-Secrets load from environment variables and `.env` stays out of version control. Workspace-scoped permissions protect documents, chat, feedback review, evaluations, and retrieval. See `docs/security.md`.
+```powershell
+python -m ruff check .
+python manage.py check
+python manage.py makemigrations --check --dry-run
+python -m pytest
+docker build --progress=plain -t cited-knowledge-desk:release .
+```
+
+CI runs the same core checks on GitHub Actions.
 
 ## Deployment
 
-Docker Compose is included for local development and `docker-compose.prod.yml` provides a production-style example with Daphne, Celery, PostgreSQL/pgvector, Redis, and persistent volumes.
+Production-oriented files are included:
 
-See:
-
-- `docs/testing.md`
+- `.env.production.example`
+- `Dockerfile`
+- `docker-compose.prod.yml`
 - `docs/deployment.md`
 - `docs/release-checklist.md`
-- `.github/workflows/ci.yml`
 
-## Limitations
+The recommended deployment path is a small VPS running Docker Compose with:
 
-- Feedback review is workspace-admin scoped, but richer triage workflows and analytics are future work.
-- Evaluation metrics are deterministic heuristics for local regression testing, not a replacement for human review or model-graded evals.
+- Django/Daphne web container
+- Celery worker
+- PostgreSQL/pgvector volume
+- Redis volume
+- Reverse proxy with HTTPS
 
-## Roadmap
+See [docs/deployment.md](docs/deployment.md) for the full deployment notes.
 
-1. Auth and workspaces
-2. Document upload
-3. Ingestion worker
-4. Embeddings and vector search
-5. Chat backend
-6. Streaming chat UI
-7. Feedback and review
-8. Evaluation harness
-9. Testing, CI, and deployment
+## Security Notes
+
+- Real `.env` files are ignored by Git
+- Uploaded media is ignored by Git
+- Workspace permissions scope documents, chat sessions, retrieval, feedback, and evaluations
+- Guest mode is intentionally limited to Dashboard, Documents, and Chat
+- Secrets must live in environment variables in production
+
+See [docs/security.md](docs/security.md).
+
+## Project Status
+
+The core milestone build is complete:
+
+1. Project setup
+2. Auth and workspaces
+3. Document upload
+4. Ingestion worker
+5. Embeddings and retrieval
+6. Chat backend
+7. Streaming chat UI
+8. Feedback and review
+9. Evaluation harness
+10. Testing, CI, and deployment foundation
+
+Milestone logs are stored in [docs/milestone-logs](docs/milestone-logs).
+
+## License
+
+See [LICENSE](LICENSE).
