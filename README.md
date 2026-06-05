@@ -187,7 +187,9 @@ Production-oriented files are included:
 - `.env.production.example`
 - `Dockerfile`
 - `docker-compose.prod.yml`
+- `render.yaml`
 - `docs/deployment.md`
+- `docs/render-free-deployment.md`
 - `docs/release-checklist.md`
 
 The recommended deployment path is a small VPS running Docker Compose with:
@@ -199,6 +201,8 @@ The recommended deployment path is a small VPS running Docker Compose with:
 - Reverse proxy with HTTPS
 
 See [docs/deployment.md](docs/deployment.md) for the full deployment notes.
+
+For a no-cost portfolio preview, see [docs/render-free-deployment.md](docs/render-free-deployment.md).
 
 ## Security Notes
 

@@ -83,6 +83,14 @@ Check health:
 https://your-domain.com/health/
 ```
 
+## Free Render Portfolio Preview
+
+For a no-cost portfolio preview, use the included `render.yaml` Blueprint. It deploys a free web service, free Postgres, free Redis-compatible Key Value instance, and seeds a clean demo workspace.
+
+See `docs/render-free-deployment.md`.
+
+Important limitation: Render free services are preview-grade. Free web services spin down after inactivity, free Postgres expires after 30 days, and the free preview disables automatic Celery ingestion because Render does not provide a separate free background worker.
+
 ## Reverse Proxy Notes
 
 Terminate TLS at a reverse proxy such as Caddy, Nginx, Traefik, or a managed platform load balancer. Forward HTTP and WebSocket traffic to the `web` service on port `8000`.
