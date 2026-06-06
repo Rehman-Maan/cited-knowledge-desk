@@ -31,12 +31,13 @@ For a serious hosted version, use a paid web service, paid Postgres, persistent 
 6. Open the Render URL.
 7. Log in with username `demo_public` and the password you entered.
 
-The pre-deploy command runs migrations, collects static files, and seeds the public demo workspace:
+Because Render free web services do not support Blueprint pre-deploy commands, the free demo start command runs migrations, collects static files, seeds the public demo workspace, and then starts Daphne:
 
 ```bash
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput
 python manage.py seed_public_demo
+daphne -b 0.0.0.0 -p ${PORT:-8000} config.asgi:application
 ```
 
 Guest mode also works, but the seeded demo workspace is best for showing Documents, Chat, Citations, Feedback, and Evaluations.
