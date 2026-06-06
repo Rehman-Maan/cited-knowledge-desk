@@ -31,7 +31,7 @@ For a serious hosted version, use a paid web service, paid Postgres, persistent 
 6. Open the Render URL.
 7. Log in with username `demo_public` and the password you entered.
 
-Because Render free web services do not support Blueprint pre-deploy commands, the free demo start command runs migrations, collects static files, seeds the public demo workspace, and then starts Daphne:
+Because Render free web services do not support Blueprint pre-deploy commands, the Docker startup script checks `RENDER_FREE_DEPLOYMENT=True`, runs migrations, collects static files, seeds the public demo workspace, and then starts Daphne:
 
 ```bash
 python manage.py migrate --noinput

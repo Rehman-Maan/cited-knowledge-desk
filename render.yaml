@@ -14,10 +14,11 @@ services:
     branch: main
     healthCheckPath: /health/
     autoDeployTrigger: checksPass
-    dockerCommand: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && python manage.py seed_public_demo && daphne -b 0.0.0.0 -p ${PORT:-8000} config.asgi:application"
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: config.settings.production
+      - key: RENDER_FREE_DEPLOYMENT
+        value: "True"
       - key: SECRET_KEY
         generateValue: true
       - key: DEBUG
