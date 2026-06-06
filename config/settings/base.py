@@ -21,6 +21,7 @@ env = environ.Env(
     LLM_MAX_OUTPUT_TOKENS=(int, 700),
     OPENAI_API_KEY=(str, ""),
     REDIS_URL=(str, "redis://localhost:6379/0"),
+    SECURE_SSL_REDIRECT=(bool, True),
 )
 
 env_file = BASE_DIR / ".env"
